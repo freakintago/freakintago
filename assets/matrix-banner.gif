@@ -1,0 +1,90 @@
+
+from PIL import Image, ImageDraw, ImageFont
+import random
+
+# Banner settings
+W, H = 1200, 300
+FRAMES = 30
+FONT_SIZE = 17
+GREEN = (57, 255, 20)
+DARK_GREEN = (0, 100, 20)
+BLACK = (3, 7, 5)
+
+random.seed(12)
+
+# Find a font
+try:
+    font = ImageFont.truetype("DejaVuSansMono.ttf", FONT_SIZE)
+    title_font = ImageFont.truetype("DejaVuSansMono.ttf", 35)
+except OSError:
+    font = ImageFont.load_default()
+    title_font = ImageFont.load_default()
+
+columns = list(range(0, W, FONT_SIZE))
+streams = [
+    random.randint(-H, H) for _ in columns
+]
+
+frames = []
+
+for frame_no in range(FRAMES):
+    image = Image.new("RGB", (W, H), BLACK)
+    draw = ImageDraw.Draw(image)
+
+    # Falling Matrix characters
+    for i, x in enumerate(columns):
+        y = (streams[i] + frame_no * random.randint(4, 10)) % (H + 100)
+
+        for trail in range(7):
+            char_y = y - trail * FONT_SIZE
+            if 0 <= char_y < H:
+                char = random.choice(
+                    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                )
+                brightness = max(40, 255 - trail * 30)
+
+                if trail == 0:
+                    color = (200, 255, 200)
+                else:
+                    color = (
+                        0,
+                        brightness,
+                        min(70, brightness // 4)
+                    )
+
+                draw.text((x, char_y), char, font=font, fill=color)
+
+    # Dark overlay behind the text
+    draw.rectangle((90, 85, 1110, 215), fill=(2, 12, 5))
+
+    # Banner text
+    draw.text(
+        (W // 2, 112),
+        "CYBERSECURITY",
+        font=title_font,
+        fill=GREEN,
+        anchor="mm",
+        stroke_width=1
+    )
+
+    draw.text(
+        (W // 2, 165),
+        "> LEARN  /  BUILD  /  SECURE _",
+        font=font,
+        fill=(180, 255, 180),
+        anchor="mm"
+    )
+
+    frames.append(image)
+
+# Save animated banner
+frames[0].save(
+    "matrix-banner.gif",
+    save_all=True,
+    append_images=frames[1:],
+    duration=100,
+    loop=0,
+    optimize=False
+)
+
+print("Created matrix-banner.gif")
