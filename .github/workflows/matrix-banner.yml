@@ -1,0 +1,95 @@
+
+name: Generate Freakintago Matrix Banner
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/matrix-banner.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate-banner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pillow
+        run: pip install pillow
+
+      - name: Create animated banner
+        run: |
+          mkdir -p assets
+          cat > /tmp/banner.py <<'PY'
+          from PIL import Image, ImageDraw, ImageFont
+          import random, os
+
+          W, H = 1200, 300
+          random.seed()
+          font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+          bold_path = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+          rain_font = ImageFont.truetype(font_path, 16)
+          title_font = ImageFont.truetype(bold_path, 56)
+          small_font = ImageFont.truetype(bold_path, 17)
+
+          chars = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ{}[]<>/$#"
+          cols = W // 16 + 1
+          drops = [random.randint(-20, 0) for _ in range(cols)]
+          frames = []
+
+          for f in range(40):
+              im = Image.new("RGB", (W, H), (0, 0, 0))
+              d = ImageDraw.Draw(im)
+
+              for c in range(cols):
+                  x = c * 16
+                  for trail in range(14):
+                      y = int((drops[c] - trail) * 16)
+                      if 0 <= y < H:
+                          ch = random.choice(chars)
+                          fade = max(0.1, 1 - trail / 14)
+                          color = (210, 255, 220) if trail == 0 else (0, int(230*fade), int(50*fade))
+                          d.text((x, y), ch, font=rain_font, fill=color)
+                  drops[c] += random.choice([0.7, 1, 1.2, 1.5])
+                  if drops[c] * 16 > H and random.random() > 0.96:
+                      drops[c] = random.randint(-20, 0)
+
+              d.rounded_rectangle((120, 62, 1080, 238), radius=20,
+                                  fill=(0, 0, 0), outline=(0, 255, 65), width=2)
+
+              title = "FREAKINTAGO"
+              box = d.textbbox((0, 0), title, font=title_font)
+              tx = (W - (box[2] - box[0])) // 2
+              d.text((tx+2, 100+2), title, font=title_font, fill=(0, 100, 20))
+              d.text((tx, 100), title, font=title_font, fill=(57, 255, 20))
+
+              subtitle = "CYBERSECURITY  //  ENTER THE MATRIX"
+              box = d.textbbox((0, 0), subtitle, font=small_font)
+              sx = (W - (box[2] - box[0])) // 2
+              color = (0, 255, 65) if f % 8 < 6 else (80, 150, 80)
+              d.text((sx, 180), subtitle, font=small_font, fill=color)
+              frames.append(im)
+
+          frames[0].save(
+              "assets/profile.gif",
+              save_all=True,
+              append_images=frames[1:],
+              duration=80,
+              loop=0,
+              optimize=True
+          )
+          PY
+          python /tmp/banner.py
+
+      - name: Save banner to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/profile.gif
+          if ! git diff --cached --quiet; then
+            git commit -m "Add animated Matrix profile banner"
+            git push
+          fi
