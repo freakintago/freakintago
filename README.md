@@ -1,5 +1,9 @@
 
 <div align="center">
+  <img src="./matrix-banner.gif" width="100%" alt="Animated green Matrix cybersecurity banner">
+</div>
+
+<div align="center">
   <img src="./profile-banner.png" width="100%" alt="Cybersecurity banner">
 </div>
 
